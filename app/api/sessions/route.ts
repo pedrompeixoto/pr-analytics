@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import type { Session, DailyAggregate } from "@/types";
+import type { Session, DailyAggregate, MonthlyAggregate, WeeklyAggregate } from "@/types";
 
 export async function GET() {
   const db = getDb();
@@ -25,7 +25,35 @@ export async function GET() {
     )
     .all() as DailyAggregate[];
 
-  return NextResponse.json({ sessions, dailyAggregates });
+  const monthlyAggregates = db
+    .prepare(
+      `SELECT
+        strftime('%Y-%m', started_at) as month,
+        SUM(duration_ms) as total_ms,
+        COUNT(*) as session_count
+       FROM sessions
+       WHERE stopped_at IS NOT NULL
+       GROUP BY strftime('%Y-%m', started_at)
+       ORDER BY month DESC
+       LIMIT 24`
+    )
+    .all() as MonthlyAggregate[];
+
+  const weeklyAggregates = db
+    .prepare(
+      `SELECT
+        strftime('%Y-%W', started_at) as week,
+        SUM(duration_ms) as total_ms,
+        COUNT(*) as session_count
+       FROM sessions
+       WHERE stopped_at IS NOT NULL
+       GROUP BY strftime('%Y-%W', started_at)
+       ORDER BY week DESC
+       LIMIT 52`
+    )
+    .all() as WeeklyAggregate[];
+
+  return NextResponse.json({ sessions, dailyAggregates, weeklyAggregates, monthlyAggregates });
 }
 
 export async function POST(request: Request) {

@@ -9,6 +9,9 @@ export async function GET() {
         averagePerWeek: 0,
         totalReviews: 0,
         oldestReviewDate: null,
+        dailyReviews: [],
+        weeklyReviews: [],
+        monthlyReviews: [],
         error: "GitHub token not configured. Add GITHUB_TOKEN and GITHUB_USERNAME to .env.local",
       },
       { status: 200 }
@@ -16,9 +19,12 @@ export async function GET() {
   }
 
   try {
+    console.log("[github] GET /api/github/reviews called");
     const stats = await fetchReviewStats();
+    console.log("[github] responding with stats:", JSON.stringify(stats, null, 2));
     return NextResponse.json(stats);
   } catch (err) {
+    console.error("[github] route error:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
